@@ -1,0 +1,91 @@
+{
+  "name": "@linked.cm/safety",
+  "version": "0.1.0",
+  "description": "Portable LINKED safety records and core operations for reporting, blocking, muting, moderation, and visibility filtering.",
+  "linkedPackage": true,
+  "type": "module",
+  "main": "lib/cjs/index.js",
+  "module": "lib/esm/index.js",
+  "types": "lib/esm/index.d.ts",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/linked-cm/safety.git"
+  },
+  "files": [
+    "lib",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": [
+    "./src/package.ts",
+    "./src/index.ts",
+    "./src/shapes/index.ts",
+    "./src/shapes/*.ts",
+    "lib/esm/shapes/index.js",
+    "lib/esm/shapes/*.js"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "start": "npm exec linked dev",
+    "build": "npm exec linked build",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --config vitest.config.ts"
+  },
+  "exports": {
+    ".": {
+      "types": "./lib/esm/index.d.ts",
+      "import": "./lib/esm/index.js",
+      "require": "./lib/cjs/index.js"
+    },
+    "./core": {
+      "types": "./lib/esm/core.d.ts",
+      "import": "./lib/esm/core.js",
+      "require": "./lib/cjs/core.js"
+    },
+    "./shapes": {
+      "types": "./lib/esm/shapes.d.ts",
+      "import": "./lib/esm/shapes.js",
+      "require": "./lib/cjs/shapes.js"
+    },
+    "./*.js": {
+      "types": "./lib/esm/*.d.ts",
+      "import": "./lib/esm/*.js",
+      "require": "./lib/cjs/*.js"
+    },
+    "./*": {
+      "types": "./lib/esm/*.d.ts",
+      "import": "./lib/esm/*.js",
+      "require": "./lib/cjs/*.js"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "*": [
+        "lib/esm/*"
+      ]
+    }
+  },
+  "dependencies": {
+    "@_linked/core": "^2.25.0",
+    "@_linked/xsd": "^1.0.0"
+  },
+  "devDependencies": {
+    "@_linked/cli": "1.39.0",
+    "@changesets/changelog-github": "^1.0.0",
+    "@changesets/cli": "^3.0.0",
+    "@types/node": "^20.12.7",
+    "typescript": "^5.9.2",
+    "vitest": "^2.1.9"
+  },
+  "keywords": [
+    "linked",
+    "safety",
+    "moderation",
+    "reporting",
+    "blocking",
+    "rdf"
+  ]
+}
