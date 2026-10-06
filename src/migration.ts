@@ -47,11 +47,21 @@ const key = (...parts: unknown[]) => parts.map((part) => idOf(part) || String(pa
 const UNKNOWN_CREATED_AT = '1970-01-01T00:00:00.000Z';
 const migrationCreatedAt = (value?: string): string => value || UNKNOWN_CREATED_AT;
 
+export interface MigrationOptions {
+  /** Count what would be copied and write nothing. */
+  dryRun?: boolean;
+}
+
 /**
  * Idempotently copies legacy rows into the shared ontology. The legacy data is never
  * deleted; hosts can deploy dual-read, verify counts, then retire old shapes separately.
+ * With `dryRun` the counts are the rows a real run would copy, and nothing is written.
  */
-export async function migrateLegacySafetySnapshot(snapshot: LegacySafetySnapshot): Promise<MigrationCounts> {
+export async function migrateLegacySafetySnapshot(
+  snapshot: LegacySafetySnapshot,
+  options: MigrationOptions = {},
+): Promise<MigrationCounts> {
+  const write = !options.dryRun;
   const counts: MigrationCounts = { reports: 0, blocks: 0, mutes: 0, contentMutes: 0, skipped: 0 };
   const [reports, blocks, mutes, contentMutes] = await Promise.all([
     SafetyReportShape.select((row) => [row.reportedBy, row.target, row.createdAt]) as Promise<any[]>,
@@ -74,7 +84,7 @@ export async function migrateLegacySafetySnapshot(snapshot: LegacySafetySnapshot
     const dedupe = key(reporterId, targetId, createdAt);
     if (reportKeys.has(dedupe)) { counts.skipped += 1; continue; }
     const reason = canonicalReportReason(row.reasonCode);
-    await SafetyReportShape.create({
+    if (write) await SafetyReportShape.create({
       reportedBy: { id: reporterId },
       target: { id: targetId },
       targetKind: (row.targetKind || 'other') as ReportTargetKind,
@@ -99,7 +109,7 @@ export async function migrateLegacySafetySnapshot(snapshot: LegacySafetySnapshot
     const createdAt = migrationCreatedAt(row.createdAt);
     const dedupe = key(blockerId, blockedId, createdAt);
     if (blockKeys.has(dedupe)) { counts.skipped += 1; continue; }
-    await SafetyBlockShape.create({
+    if (write) await SafetyBlockShape.create({
       blockedBy: { id: blockerId }, blocked: { id: blockedId }, createdAt,
       active: row.active !== false,
       ...(row.avoidFuture ? { avoidFutureInteraction: true } : {}),
@@ -115,7 +125,7 @@ export async function migrateLegacySafetySnapshot(snapshot: LegacySafetySnapshot
     const createdAt = migrationCreatedAt(row.createdAt);
     const dedupe = key(viewerId, subjectId, createdAt);
     if (muteKeys.has(dedupe)) { counts.skipped += 1; continue; }
-    await SafetyMuteShape.create({
+    if (write) await SafetyMuteShape.create({
       mutedBy: { id: viewerId }, muted: { id: subjectId }, createdAt,
       active: row.active !== false,
       ...(row.until ? { until: row.until } : {}),
@@ -129,7 +139,7 @@ export async function migrateLegacySafetySnapshot(snapshot: LegacySafetySnapshot
     if (!viewerId || !row.label) { counts.skipped += 1; continue; }
     const dedupe = key(viewerId, row.label);
     if (contentMuteKeys.has(dedupe)) { counts.skipped += 1; continue; }
-    await ContentMuteShape.create({
+    if (write) await ContentMuteShape.create({
       mutedBy: { id: viewerId }, label: row.label,
       createdAt: migrationCreatedAt(row.createdAt), active: row.active !== false,
     } as any);
