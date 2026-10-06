@@ -1,8 +1,14 @@
-import { describe, expect, it } from 'vitest';
-import { computeSafetySets } from '../src/core.js';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+  computeSafetySets,
+  normalizeSafetyReports,
+  updateReportStatus,
+} from '../src/core.js';
 import { canonicalReportReason } from '../src/ontologies/safety.js';
+import { SafetyReportShape } from '../src/shapes/SafetyReport.js';
 
 describe('portable safety visibility', () => {
+  afterEach(() => vi.restoreAllMocks());
   const rows = {
     blocks: [
       { blockedBy: { id: 'a' }, blocked: { id: 'b' }, active: true },
@@ -47,5 +53,81 @@ describe('portable safety visibility', () => {
     expect(canonicalReportReason('nudity')).toBe('sexualContent');
     expect(canonicalReportReason('csam')).toBe('childSafety');
     expect(canonicalReportReason('unexpected')).toBe('other');
+  });
+
+  it('projects a bounded, newest-first moderation queue without resolving host identities', () => {
+    const reports = normalizeSafetyReports(
+      [
+        {
+          id: 'report:older',
+          reportedBy: { id: 'person:a' },
+          target: { id: 'message:older' },
+          targetKind: 'message',
+          reasonCode: 'spam',
+          reportStatus: 'open',
+          createdAt: '2026-10-05T00:00:00.000Z',
+        },
+        {
+          id: 'report:newer',
+          reportedBy: { id: 'person:b' },
+          target: { id: 'message:newer' },
+          targetKind: 'message',
+          reasonCode: 'childSafety',
+          reportStatus: 'reviewing',
+          legalHold: true,
+          inPersonIncident: true,
+          detail: 'Private reviewer context',
+          createdAt: '2026-10-06T00:00:00.000Z',
+        },
+        {
+          id: 'report:closed',
+          reportedBy: { id: 'person:c' },
+          target: { id: 'message:closed' },
+          targetKind: 'message',
+          reasonCode: 'other',
+          reportStatus: 'dismissed',
+          createdAt: '2026-10-07T00:00:00.000Z',
+        },
+      ],
+      { statuses: ['open', 'reviewing'], limit: 2 },
+    );
+
+    expect(reports.map((report) => report.id)).toEqual(['report:newer', 'report:older']);
+    expect(reports[0]).toMatchObject({
+      reporterId: 'person:b',
+      targetId: 'message:newer',
+      reason: 'childSafety',
+      legalHold: true,
+      inPersonIncident: true,
+    });
+  });
+
+  it('never records a removed resolution before the host removal succeeds', async () => {
+    vi.spyOn(SafetyReportShape, 'select').mockReturnValue({
+      where: () => ({ one: async () => ({ target: { id: 'message:1' } }) }),
+    } as any);
+    const updateFor = vi.fn();
+    vi.spyOn(SafetyReportShape, 'update').mockReturnValue({ for: updateFor } as any);
+
+    await expect(
+      updateReportStatus({
+        reportId: 'report:1',
+        status: 'actioned',
+        resolution: 'removed',
+      }),
+    ).rejects.toThrow('remove_target_not_configured');
+    expect(updateFor).not.toHaveBeenCalled();
+
+    const effects: string[] = [];
+    updateFor.mockImplementation(async () => effects.push('status-updated'));
+    await updateReportStatus(
+      {
+        reportId: 'report:1',
+        status: 'actioned',
+        resolution: 'removed',
+      },
+      { removeTarget: async () => { effects.push('target-removed'); } },
+    );
+    expect(effects).toEqual(['target-removed', 'status-updated']);
   });
 });

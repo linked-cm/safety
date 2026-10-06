@@ -10,7 +10,8 @@ The package provides:
 - `SafetyMuteShape`: a silent, one-way mute with optional automatic expiry.
 - `ContentMuteShape`: a viewer preference over host-defined content labels.
 - core verbs (`createReport`, `createBlock`, `muteSubject`, status updates and reversals),
-  one shared visibility resolver, Settings-facing reads, and an idempotent legacy migration.
+  one shared visibility resolver, bounded moderation and Settings-facing reads, and an
+  idempotent legacy migration.
 
 The package does **not** decide who is a moderator, scan content, notify police, delete host
 content, end friendships, or alter schedules. Those are host policies. `SafetyHooks` makes
@@ -61,3 +62,11 @@ retire the old shapes. Known Serve aliases are normalized (`nudity` → `sexualC
 moderation route. A host should wire both transport-native and durable safety actions:
 Matrix reporting informs the homeserver operator; `@linked.cm/safety` drives the product's
 own review queue, visibility rules, account action and legal-hold records.
+
+A `removed` resolution requires a `removeTarget` hook. The core runs that host effect before
+recording the report as actioned, so a failed deletion or redaction is never represented as
+successful moderation.
+
+`listSafetyReports({ statuses, limit })` is the portable moderation-queue read. It returns
+generic IRIs and report metadata only; the host must authorize the caller before invoking it
+and may resolve identities or content references inside its private admin layer.

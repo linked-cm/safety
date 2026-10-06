@@ -183,15 +183,16 @@ export async function updateReportStatus(input: {
     .where((report) => report.equals({ id: input.reportId }))
     .one();
   if (!existing) throw new Error('report_not_found');
+  if (input.resolution === 'removed') {
+    if (!hooks.removeTarget) throw new Error('remove_target_not_configured');
+    await hooks.removeTarget({ targetId: idOf(existing.target), reportId: input.reportId });
+  }
   await SafetyReportShape.update({
     reportStatus: input.status,
     ...(input.resolvedById ? { resolvedBy: { id: input.resolvedById } } : {}),
     ...(input.resolution ? { resolution: input.resolution } : {}),
     ...(['actioned', 'dismissed'].includes(input.status) ? { resolvedAt: new Date().toISOString() } : {}),
   } as any).for({ id: input.reportId });
-  if (input.resolution === 'removed') {
-    await hooks.removeTarget?.({ targetId: idOf(existing.target), reportId: input.reportId });
-  }
 }
 
 async function activeBlock(blockerId: string, blockedId: string): Promise<any | undefined> {
@@ -291,6 +292,105 @@ export interface SafetyListItem {
   until?: string;
   createdAt?: string;
   avoidFutureInteraction?: boolean;
+}
+
+export interface SafetyModerationReport {
+  id: string;
+  reporterId: string;
+  targetId: string;
+  targetKind: ReportTargetKind;
+  reason: ReportReason;
+  status: ReportStatus;
+  detail?: string;
+  inPersonIncident?: boolean;
+  legalHold?: boolean;
+  createdAt?: string;
+  resolvedAt?: string;
+  resolvedById?: string;
+  resolution?: ReportResolution;
+}
+
+export interface ListSafetyReportsOptions {
+  statuses?: ReportStatus[];
+  limit?: number;
+}
+
+type SafetyModerationRow = {
+  id?: unknown;
+  uri?: unknown;
+  reportedBy?: unknown;
+  target?: unknown;
+  targetKind?: string;
+  reasonCode?: string;
+  reportStatus?: string;
+  detail?: string;
+  inPersonIncident?: boolean;
+  legalHold?: boolean;
+  createdAt?: string;
+  resolvedAt?: string;
+  resolvedBy?: unknown;
+  resolution?: string;
+};
+
+/** Pure projection used by hosts and tests; it never resolves product identities. */
+export function normalizeSafetyReports(
+  rows: SafetyModerationRow[],
+  options: ListSafetyReportsOptions = {},
+): SafetyModerationReport[] {
+  const statuses = options.statuses?.length ? new Set(options.statuses) : null;
+  const limit = Math.min(Math.max(Math.trunc(options.limit ?? 100), 1), 500);
+
+  return rows
+    .map((row): SafetyModerationReport | null => {
+      const id = idOf(row);
+      const reporterId = idOf(row.reportedBy);
+      const targetId = idOf(row.target);
+      const status = row.reportStatus as ReportStatus;
+      if (!id || !reporterId || !targetId || !status) return null;
+      if (statuses && !statuses.has(status)) return null;
+      return {
+        id,
+        reporterId,
+        targetId,
+        targetKind: row.targetKind as ReportTargetKind,
+        reason: row.reasonCode as ReportReason,
+        status,
+        ...(row.detail ? { detail: row.detail } : {}),
+        ...(row.inPersonIncident ? { inPersonIncident: true } : {}),
+        ...(row.legalHold ? { legalHold: true } : {}),
+        ...(row.createdAt ? { createdAt: row.createdAt } : {}),
+        ...(row.resolvedAt ? { resolvedAt: row.resolvedAt } : {}),
+        ...(idOf(row.resolvedBy) ? { resolvedById: idOf(row.resolvedBy) } : {}),
+        ...(row.resolution ? { resolution: row.resolution as ReportResolution } : {}),
+      };
+    })
+    .filter((report): report is SafetyModerationReport => Boolean(report))
+    .sort((left, right) => String(right.createdAt || '').localeCompare(String(left.createdAt || '')))
+    .slice(0, limit);
+}
+
+/**
+ * Framework-neutral moderation read. Authorization remains the host's
+ * responsibility; never expose this directly to an untrusted client.
+ */
+export async function listSafetyReports(
+  options: ListSafetyReportsOptions = {},
+): Promise<SafetyModerationReport[]> {
+  const reports = await SafetyReportShape.select((report) => [
+    report.reportedBy,
+    report.target,
+    report.targetKind,
+    report.reasonCode,
+    report.reportStatus,
+    report.detail,
+    report.inPersonIncident,
+    report.legalHold,
+    report.createdAt,
+    report.resolvedAt,
+    report.resolvedBy,
+    report.resolution,
+  ]) as unknown as SafetyModerationRow[];
+  return normalizeSafetyReports(reports, options);
 }
 
 /** Framework-neutral Settings → Safety read; a host UI resolves names/images separately. */
