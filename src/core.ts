@@ -6,6 +6,7 @@ import {
   SafetyBlockShape,
   SafetyMuteShape,
   SafetyReportShape,
+  SafetyRestrictionShape,
 } from './shapes.js';
 import {
   canonicalReportReason,
@@ -13,6 +14,8 @@ import {
   type ReportResolution,
   type ReportStatus,
   type ReportTargetKind,
+  type RestrictionScope,
+  type RestrictionSource,
 } from './ontologies/safety.js';
 
 export const idOf = (value: unknown): string => {
@@ -38,7 +41,12 @@ export interface SafetySets {
 
 export interface SafetyRows {
   blocks: Array<{ blockedBy?: unknown; blocked?: unknown; active?: boolean }>;
-  mutes: Array<{ mutedBy?: unknown; muted?: unknown; active?: boolean; until?: string }>;
+  mutes: Array<{
+    mutedBy?: unknown;
+    muted?: unknown;
+    active?: boolean;
+    until?: string;
+  }>;
   reports: Array<{
     reportedBy?: unknown;
     target?: unknown;
@@ -53,7 +61,7 @@ export interface SafetyRows {
 export function computeSafetySets(
   rows: SafetyRows,
   viewerId?: string | null,
-  now = Date.now(),
+  now = Date.now()
 ): SafetySets {
   const blocked = new Set<string>();
   const mutedSubjects = new Set<string>();
@@ -102,11 +110,20 @@ export function computeSafetySets(
 /** Reads the generic RDF models and returns the visibility sets for a viewer. */
 export async function selectSafetySets(
   viewerId?: string | null,
-  now = Date.now(),
+  now = Date.now()
 ): Promise<SafetySets> {
   const [blocks, mutes, reports, contentMutes] = await Promise.all([
-    SafetyBlockShape.select((block) => [block.blockedBy, block.blocked, block.active]) as Promise<SafetyRows['blocks']>,
-    SafetyMuteShape.select((mute) => [mute.mutedBy, mute.muted, mute.active, mute.until]) as Promise<SafetyRows['mutes']>,
+    SafetyBlockShape.select((block) => [
+      block.blockedBy,
+      block.blocked,
+      block.active,
+    ]) as Promise<SafetyRows['blocks']>,
+    SafetyMuteShape.select((mute) => [
+      mute.mutedBy,
+      mute.muted,
+      mute.active,
+      mute.until,
+    ]) as Promise<SafetyRows['mutes']>,
     SafetyReportShape.select((report) => [
       report.reportedBy,
       report.target,
@@ -114,12 +131,23 @@ export async function selectSafetySets(
       report.reportStatus,
       report.resolution,
     ]) as Promise<SafetyRows['reports']>,
-    ContentMuteShape.select((mute) => [mute.mutedBy, mute.label, mute.active]) as Promise<SafetyRows['contentMutes']>,
+    ContentMuteShape.select((mute) => [
+      mute.mutedBy,
+      mute.label,
+      mute.active,
+    ]) as Promise<SafetyRows['contentMutes']>,
   ]);
-  return computeSafetySets({ blocks, mutes, reports, contentMutes }, viewerId, now);
+  return computeSafetySets(
+    { blocks, mutes, reports, contentMutes },
+    viewerId,
+    now
+  );
 }
 
-export const isMutedContent = (labels: unknown, sets: Pick<SafetySets, 'mutedLabels'>): boolean => {
+export const isMutedContent = (
+  labels: unknown,
+  sets: Pick<SafetySets, 'mutedLabels'>
+): boolean => {
   const values = Array.isArray(labels) ? labels : labels ? [labels] : [];
   return values.some((label) => sets.mutedLabels.has(String(label)));
 };
@@ -135,21 +163,35 @@ export interface SafetyReportInput {
 
 export interface SafetyHooks {
   /** Immediately quarantine or unpublish the target. Required for a host to claim that behavior. */
-  quarantineTarget?: (input: SafetyReportInput & { reportId: string }) => void | Promise<void>;
+  quarantineTarget?: (
+    input: SafetyReportInput & { reportId: string }
+  ) => void | Promise<void>;
   /** Notify a private, authorized review lane. Never expose reporter identity to the target. */
-  notifyReviewQueue?: (input: SafetyReportInput & { reportId: string }) => void | Promise<void>;
+  notifyReviewQueue?: (
+    input: SafetyReportInput & { reportId: string }
+  ) => void | Promise<void>;
   /** End friendships, pending requests, or discovery links after the RDF block lands. */
-  afterBlock?: (input: { blockerId: string; blockedId: string; blockId: string }) => void | Promise<void>;
+  afterBlock?: (input: {
+    blockerId: string;
+    blockedId: string;
+    blockId: string;
+  }) => void | Promise<void>;
   /** Repeated blocks can raise a host-owned account review signal. */
-  repeatedBlockSignal?: (input: { blockedId: string; distinctBlockers: number }) => void | Promise<void>;
+  repeatedBlockSignal?: (input: {
+    blockedId: string;
+    distinctBlockers: number;
+  }) => void | Promise<void>;
   repeatedBlockThreshold?: number;
   /** Apply the host's actual content deletion/tombstone operation after a moderation decision. */
-  removeTarget?: (input: { targetId: string; reportId: string }) => void | Promise<void>;
+  removeTarget?: (input: {
+    targetId: string;
+    reportId: string;
+  }) => void | Promise<void>;
 }
 
 export async function createReport(
   input: SafetyReportInput,
-  hooks: SafetyHooks = {},
+  hooks: SafetyHooks = {}
 ): Promise<string> {
   const normalizedInput = {
     ...input,
@@ -162,51 +204,77 @@ export async function createReport(
     targetKind: normalizedInput.targetKind,
     reasonCode: normalizedInput.reason,
     ...(normalizedInput.inPersonIncident ? { inPersonIncident: true } : {}),
-    ...(normalizedInput.detail?.trim() ? { detail: normalizedInput.detail.trim() } : {}),
+    ...(normalizedInput.detail?.trim()
+      ? { detail: normalizedInput.detail.trim() }
+      : {}),
     createdAt: new Date().toISOString(),
     reportStatus: 'open',
     ...(childSafety ? { legalHold: true } : {}),
   } as any);
   const reportId = report.id;
-  if (childSafety) await hooks.quarantineTarget?.({ ...normalizedInput, reportId });
+  if (childSafety)
+    await hooks.quarantineTarget?.({ ...normalizedInput, reportId });
   await hooks.notifyReviewQueue?.({ ...normalizedInput, reportId });
   return reportId;
 }
 
-export async function updateReportStatus(input: {
-  reportId: string;
-  status: ReportStatus;
-  resolvedById?: string;
-  resolution?: ReportResolution;
-}, hooks: Pick<SafetyHooks, 'removeTarget'> = {}): Promise<void> {
-  const existing = await SafetyReportShape.select((report) => [report.target, report.legalHold])
+export async function updateReportStatus(
+  input: {
+    reportId: string;
+    status: ReportStatus;
+    resolvedById?: string;
+    resolution?: ReportResolution;
+  },
+  hooks: Pick<SafetyHooks, 'removeTarget'> = {}
+): Promise<void> {
+  const existing = await SafetyReportShape.select((report) => [
+    report.target,
+    report.legalHold,
+  ])
     .where((report) => report.equals({ id: input.reportId }))
     .one();
   if (!existing) throw new Error('report_not_found');
+  if (input.resolution === 'removed') {
+    if (!hooks.removeTarget) throw new Error('remove_target_not_configured');
+    await hooks.removeTarget({
+      targetId: idOf(existing.target),
+      reportId: input.reportId,
+    });
+  }
   await SafetyReportShape.update({
     reportStatus: input.status,
     ...(input.resolvedById ? { resolvedBy: { id: input.resolvedById } } : {}),
     ...(input.resolution ? { resolution: input.resolution } : {}),
-    ...(['actioned', 'dismissed'].includes(input.status) ? { resolvedAt: new Date().toISOString() } : {}),
+    ...(['actioned', 'dismissed'].includes(input.status)
+      ? { resolvedAt: new Date().toISOString() }
+      : {}),
   } as any).for({ id: input.reportId });
-  if (input.resolution === 'removed') {
-    await hooks.removeTarget?.({ targetId: idOf(existing.target), reportId: input.reportId });
-  }
 }
 
-async function activeBlock(blockerId: string, blockedId: string): Promise<any | undefined> {
-  const blocks = await SafetyBlockShape.select((block) => [block.blockedBy, block.blocked, block.active]) as any[];
+async function activeBlock(
+  blockerId: string,
+  blockedId: string
+): Promise<any | undefined> {
+  const blocks = (await SafetyBlockShape.select((block) => [
+    block.blockedBy,
+    block.blocked,
+    block.active,
+  ])) as any[];
   return blocks.find(
-    (block) => block.active !== false && idOf(block.blockedBy) === blockerId && idOf(block.blocked) === blockedId,
+    (block) =>
+      block.active !== false &&
+      idOf(block.blockedBy) === blockerId &&
+      idOf(block.blocked) === blockedId
   );
 }
 
 export async function createBlock(
   blockerId: string,
   blockedId: string,
-  hooks: SafetyHooks = {},
+  hooks: SafetyHooks = {}
 ): Promise<string> {
-  if (!blockerId || !blockedId || blockerId === blockedId) throw new Error('invalid_block');
+  if (!blockerId || !blockedId || blockerId === blockedId)
+    throw new Error('invalid_block');
   const existing = await activeBlock(blockerId, blockedId);
   if (existing) return idOf(existing);
   const block = await SafetyBlockShape.create({
@@ -218,9 +286,15 @@ export async function createBlock(
   await hooks.afterBlock?.({ blockerId, blockedId, blockId: block.id });
 
   if (hooks.repeatedBlockSignal) {
-    const blocks = await SafetyBlockShape.select((entry) => [entry.blockedBy, entry.blocked]) as any[];
+    const blocks = (await SafetyBlockShape.select((entry) => [
+      entry.blockedBy,
+      entry.blocked,
+    ])) as any[];
     const distinctBlockers = new Set(
-      blocks.filter((entry) => idOf(entry.blocked) === blockedId).map((entry) => idOf(entry.blockedBy)).filter(Boolean),
+      blocks
+        .filter((entry) => idOf(entry.blocked) === blockedId)
+        .map((entry) => idOf(entry.blockedBy))
+        .filter(Boolean)
     ).size;
     if (distinctBlockers >= (hooks.repeatedBlockThreshold ?? 3)) {
       await hooks.repeatedBlockSignal({ blockedId, distinctBlockers });
@@ -234,17 +308,27 @@ export async function unblock(blockId: string): Promise<void> {
 }
 
 /** Host-private matching/scheduling preference stored with the block, but not acted on here. */
-export async function setAvoidFutureInteraction(blockId: string, value: boolean): Promise<void> {
-  await SafetyBlockShape.update({ avoidFutureInteraction: value } as any).for({ id: blockId });
+export async function setAvoidFutureInteraction(
+  blockId: string,
+  value: boolean
+): Promise<void> {
+  await SafetyBlockShape.update({ avoidFutureInteraction: value } as any).for({
+    id: blockId,
+  });
 }
 
 export async function muteSubject(
   viewerId: string,
   subjectId: string,
-  options: { days?: number; until?: Date } = {},
+  options: { days?: number; until?: Date } = {}
 ): Promise<string> {
-  if (!viewerId || !subjectId || viewerId === subjectId) throw new Error('invalid_mute');
-  const until = options.until ?? (options.days ? new Date(Date.now() + options.days * 86_400_000) : undefined);
+  if (!viewerId || !subjectId || viewerId === subjectId)
+    throw new Error('invalid_mute');
+  const until =
+    options.until ??
+    (options.days
+      ? new Date(Date.now() + options.days * 86_400_000)
+      : undefined);
   const mute = await SafetyMuteShape.create({
     mutedBy: { id: viewerId },
     muted: { id: subjectId },
@@ -259,11 +343,21 @@ export async function unmuteSubject(muteId: string): Promise<void> {
   await SafetyMuteShape.update({ active: false } as any).for({ id: muteId });
 }
 
-export async function muteContentLabel(viewerId: string, label: string): Promise<string> {
+export async function muteContentLabel(
+  viewerId: string,
+  label: string
+): Promise<string> {
   if (!viewerId || !label.trim()) throw new Error('invalid_content_mute');
-  const existing = await ContentMuteShape.select((mute) => [mute.mutedBy, mute.label, mute.active]) as any[];
+  const existing = (await ContentMuteShape.select((mute) => [
+    mute.mutedBy,
+    mute.label,
+    mute.active,
+  ])) as any[];
   const active = existing.find(
-    (mute) => mute.active !== false && idOf(mute.mutedBy) === viewerId && mute.label === label,
+    (mute) =>
+      mute.active !== false &&
+      idOf(mute.mutedBy) === viewerId &&
+      mute.label === label
   );
   if (active) return idOf(active);
   const mute = await ContentMuteShape.create({
@@ -277,6 +371,114 @@ export async function muteContentLabel(viewerId: string, label: string): Promise
 
 export async function unmuteContentLabel(muteId: string): Promise<void> {
   await ContentMuteShape.update({ active: false } as any).for({ id: muteId });
+}
+
+export interface SafetyRestrictionRecord {
+  id: string;
+  subjectId: string;
+  scope: RestrictionScope;
+  reason: ReportReason;
+  source: RestrictionSource;
+  createdAt?: string;
+  expiresAt?: string;
+}
+
+type SafetyRestrictionRow = {
+  id?: unknown;
+  uri?: unknown;
+  restrictedSubject?: unknown;
+  scope?: string;
+  status?: string;
+  reasonCode?: string;
+  restrictionSource?: string;
+  createdAt?: string;
+  expiresAt?: string;
+};
+
+export function activeSafetyRestrictions(
+  rows: SafetyRestrictionRow[],
+  subjectId: string,
+  now = Date.now()
+): SafetyRestrictionRecord[] {
+  return rows
+    .filter((row) => {
+      if (row.status !== 'active' || idOf(row.restrictedSubject) !== subjectId)
+        return false;
+      return !row.expiresAt || Date.parse(row.expiresAt) > now;
+    })
+    .map((row) => ({
+      id: idOf(row),
+      subjectId,
+      scope: row.scope as RestrictionScope,
+      reason: row.reasonCode as ReportReason,
+      source: row.restrictionSource as RestrictionSource,
+      ...(row.createdAt ? { createdAt: row.createdAt } : {}),
+      ...(row.expiresAt ? { expiresAt: row.expiresAt } : {}),
+    }))
+    .filter((row) => Boolean(row.id && row.scope && row.reason && row.source));
+}
+
+export async function listActiveRestrictions(
+  subjectId: string,
+  now = Date.now()
+): Promise<SafetyRestrictionRecord[]> {
+  const rows = (await SafetyRestrictionShape.select((restriction) => [
+    restriction.restrictedSubject,
+    restriction.scope,
+    restriction.status,
+    restriction.reasonCode,
+    restriction.restrictionSource,
+    restriction.createdAt,
+    restriction.expiresAt,
+  ])) as unknown as SafetyRestrictionRow[];
+  return activeSafetyRestrictions(rows, subjectId, now);
+}
+
+export async function hasActiveRestriction(
+  subjectId: string,
+  scope?: RestrictionScope
+): Promise<boolean> {
+  const restrictions = await listActiveRestrictions(subjectId);
+  return restrictions.some(
+    (restriction) => !scope || restriction.scope === scope
+  );
+}
+
+export async function createRestriction(input: {
+  subjectId: string;
+  scope: RestrictionScope;
+  reason: ReportReason;
+  source: RestrictionSource;
+  expiresAt?: Date;
+}): Promise<string> {
+  if (!input.subjectId) throw new Error('invalid_restricted_subject');
+  const existing = (await listActiveRestrictions(input.subjectId)).find(
+    (restriction) => restriction.scope === input.scope
+  );
+  if (existing) return existing.id;
+  const restriction = await SafetyRestrictionShape.create({
+    restrictedSubject: { id: input.subjectId },
+    scope: input.scope,
+    status: 'active',
+    reasonCode: canonicalReportReason(input.reason),
+    restrictionSource: input.source,
+    createdAt: new Date().toISOString(),
+    ...(input.expiresAt ? { expiresAt: input.expiresAt.toISOString() } : {}),
+  } as any);
+  return restriction.id;
+}
+
+export async function liftRestriction(
+  restrictionId: string,
+  resolvedById: string
+): Promise<void> {
+  if (!restrictionId || !resolvedById)
+    throw new Error('invalid_restriction_resolution');
+  await SafetyRestrictionShape.update({
+    status: 'lifted',
+    resolvedBy: { id: resolvedById },
+    resolvedAt: new Date().toISOString(),
+  } as any).for({ id: restrictionId });
 }
 
 export interface SafetyListItem {
@@ -293,34 +495,196 @@ export interface SafetyListItem {
   avoidFutureInteraction?: boolean;
 }
 
+export interface SafetyModerationReport {
+  id: string;
+  reporterId: string;
+  targetId: string;
+  targetKind: ReportTargetKind;
+  reason: ReportReason;
+  status: ReportStatus;
+  detail?: string;
+  inPersonIncident?: boolean;
+  legalHold?: boolean;
+  createdAt?: string;
+  resolvedAt?: string;
+  resolvedById?: string;
+  resolution?: ReportResolution;
+}
+
+export interface ListSafetyReportsOptions {
+  statuses?: ReportStatus[];
+  limit?: number;
+}
+
+type SafetyModerationRow = {
+  id?: unknown;
+  uri?: unknown;
+  reportedBy?: unknown;
+  target?: unknown;
+  targetKind?: string;
+  reasonCode?: string;
+  reportStatus?: string;
+  detail?: string;
+  inPersonIncident?: boolean;
+  legalHold?: boolean;
+  createdAt?: string;
+  resolvedAt?: string;
+  resolvedBy?: unknown;
+  resolution?: string;
+};
+
+/** Pure projection used by hosts and tests; it never resolves product identities. */
+export function normalizeSafetyReports(
+  rows: SafetyModerationRow[],
+  options: ListSafetyReportsOptions = {}
+): SafetyModerationReport[] {
+  const statuses = options.statuses?.length ? new Set(options.statuses) : null;
+  const limit = Math.min(Math.max(Math.trunc(options.limit ?? 100), 1), 500);
+
+  return rows
+    .map((row): SafetyModerationReport | null => {
+      const id = idOf(row);
+      const reporterId = idOf(row.reportedBy);
+      const targetId = idOf(row.target);
+      const status = row.reportStatus as ReportStatus;
+      if (!id || !reporterId || !targetId || !status) return null;
+      if (statuses && !statuses.has(status)) return null;
+      return {
+        id,
+        reporterId,
+        targetId,
+        targetKind: row.targetKind as ReportTargetKind,
+        reason: row.reasonCode as ReportReason,
+        status,
+        ...(row.detail ? { detail: row.detail } : {}),
+        ...(row.inPersonIncident ? { inPersonIncident: true } : {}),
+        ...(row.legalHold ? { legalHold: true } : {}),
+        ...(row.createdAt ? { createdAt: row.createdAt } : {}),
+        ...(row.resolvedAt ? { resolvedAt: row.resolvedAt } : {}),
+        ...(idOf(row.resolvedBy) ? { resolvedById: idOf(row.resolvedBy) } : {}),
+        ...(row.resolution
+          ? { resolution: row.resolution as ReportResolution }
+          : {}),
+      };
+    })
+    .filter((report): report is SafetyModerationReport => Boolean(report))
+    .sort((left, right) =>
+      String(right.createdAt || '').localeCompare(String(left.createdAt || ''))
+    )
+    .slice(0, limit);
+}
+
+/**
+ * Framework-neutral moderation read. Authorization remains the host's
+ * responsibility; never expose this directly to an untrusted client.
+ */
+export async function listSafetyReports(
+  options: ListSafetyReportsOptions = {}
+): Promise<SafetyModerationReport[]> {
+  const reports = (await SafetyReportShape.select((report) => [
+    report.reportedBy,
+    report.target,
+    report.targetKind,
+    report.reasonCode,
+    report.reportStatus,
+    report.detail,
+    report.inPersonIncident,
+    report.legalHold,
+    report.createdAt,
+    report.resolvedAt,
+    report.resolvedBy,
+    report.resolution,
+  ])) as unknown as SafetyModerationRow[];
+  return normalizeSafetyReports(reports, options);
+}
+
 /** Framework-neutral Settings → Safety read; a host UI resolves names/images separately. */
-export async function listViewerSafety(viewerId: string, now = Date.now()): Promise<{
+export async function listViewerSafety(
+  viewerId: string,
+  now = Date.now()
+): Promise<{
   blocks: SafetyListItem[];
   mutes: SafetyListItem[];
   reports: SafetyListItem[];
   contentMutes: SafetyListItem[];
 }> {
   const [blocks, mutes, reports, contentMutes] = await Promise.all([
-    SafetyBlockShape.select((item) => [item.blockedBy, item.blocked, item.active, item.avoidFutureInteraction, item.createdAt]) as Promise<any[]>,
-    SafetyMuteShape.select((item) => [item.mutedBy, item.muted, item.active, item.until, item.createdAt]) as Promise<any[]>,
-    SafetyReportShape.select((item) => [item.reportedBy, item.target, item.targetKind, item.reasonCode, item.reportStatus, item.resolution, item.createdAt]) as Promise<any[]>,
-    ContentMuteShape.select((item) => [item.mutedBy, item.label, item.active, item.createdAt]) as Promise<any[]>,
+    SafetyBlockShape.select((item) => [
+      item.blockedBy,
+      item.blocked,
+      item.active,
+      item.avoidFutureInteraction,
+      item.createdAt,
+    ]) as Promise<any[]>,
+    SafetyMuteShape.select((item) => [
+      item.mutedBy,
+      item.muted,
+      item.active,
+      item.until,
+      item.createdAt,
+    ]) as Promise<any[]>,
+    SafetyReportShape.select((item) => [
+      item.reportedBy,
+      item.target,
+      item.targetKind,
+      item.reasonCode,
+      item.reportStatus,
+      item.resolution,
+      item.createdAt,
+    ]) as Promise<any[]>,
+    ContentMuteShape.select((item) => [
+      item.mutedBy,
+      item.label,
+      item.active,
+      item.createdAt,
+    ]) as Promise<any[]>,
   ]);
   return {
-    blocks: blocks.filter((item) => idOf(item.blockedBy) === viewerId && item.active !== false).map((item) => ({
-      id: idOf(item), subjectId: idOf(item.blocked), createdAt: item.createdAt,
-      ...(item.avoidFutureInteraction ? { avoidFutureInteraction: true } : {}),
-    })),
-    mutes: mutes.filter((item) => idOf(item.mutedBy) === viewerId && item.active !== false && !(item.until && Date.parse(item.until) <= now)).map((item) => ({
-      id: idOf(item), subjectId: idOf(item.muted), until: item.until, createdAt: item.createdAt,
-    })),
-    reports: reports.filter((item) => idOf(item.reportedBy) === viewerId).map((item) => ({
-      id: idOf(item), targetId: idOf(item.target), targetKind: item.targetKind,
-      reason: item.reasonCode, status: item.reportStatus, resolution: item.resolution, createdAt: item.createdAt,
-    })),
-    contentMutes: contentMutes.filter((item) => idOf(item.mutedBy) === viewerId && item.active !== false).map((item) => ({
-      id: idOf(item), label: item.label, createdAt: item.createdAt,
-    })),
+    blocks: blocks
+      .filter(
+        (item) => idOf(item.blockedBy) === viewerId && item.active !== false
+      )
+      .map((item) => ({
+        id: idOf(item),
+        subjectId: idOf(item.blocked),
+        createdAt: item.createdAt,
+        ...(item.avoidFutureInteraction
+          ? { avoidFutureInteraction: true }
+          : {}),
+      })),
+    mutes: mutes
+      .filter(
+        (item) =>
+          idOf(item.mutedBy) === viewerId &&
+          item.active !== false &&
+          !(item.until && Date.parse(item.until) <= now)
+      )
+      .map((item) => ({
+        id: idOf(item),
+        subjectId: idOf(item.muted),
+        until: item.until,
+        createdAt: item.createdAt,
+      })),
+    reports: reports
+      .filter((item) => idOf(item.reportedBy) === viewerId)
+      .map((item) => ({
+        id: idOf(item),
+        targetId: idOf(item.target),
+        targetKind: item.targetKind,
+        reason: item.reasonCode,
+        status: item.reportStatus,
+        resolution: item.resolution,
+        createdAt: item.createdAt,
+      })),
+    contentMutes: contentMutes
+      .filter(
+        (item) => idOf(item.mutedBy) === viewerId && item.active !== false
+      )
+      .map((item) => ({
+        id: idOf(item),
+        label: item.label,
+        createdAt: item.createdAt,
+      })),
   };
 }
 
@@ -331,9 +695,20 @@ export function safetyControllerFor(input: {
   hooks?: SafetyHooks;
 }) {
   return {
-    report: (value: unknown, report: Omit<SafetyReportInput, 'reporterId' | 'targetId'>) =>
-      createReport({ ...report, reporterId: input.viewerId, targetId: input.targetId(value) }, input.hooks),
-    block: (subject: unknown) => createBlock(input.viewerId, input.targetId(subject), input.hooks),
+    report: (
+      value: unknown,
+      report: Omit<SafetyReportInput, 'reporterId' | 'targetId'>
+    ) =>
+      createReport(
+        {
+          ...report,
+          reporterId: input.viewerId,
+          targetId: input.targetId(value),
+        },
+        input.hooks
+      ),
+    block: (subject: unknown) =>
+      createBlock(input.viewerId, input.targetId(subject), input.hooks),
     mute: (subject: unknown, options?: { days?: number; until?: Date }) =>
       muteSubject(input.viewerId, input.targetId(subject), options),
   };

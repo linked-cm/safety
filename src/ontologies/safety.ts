@@ -7,6 +7,7 @@ export const SafetyReport = ns('SafetyReport');
 export const SafetyBlock = ns('SafetyBlock');
 export const SafetyMute = ns('SafetyMute');
 export const ContentMute = ns('ContentMute');
+export const SafetyRestriction = ns('SafetyRestriction');
 
 export const reportedBy = ns('reportedBy');
 export const reportTarget = ns('reportTarget');
@@ -34,20 +35,63 @@ export const muteActive = ns('muteActive');
 
 export const mutedLabel = ns('mutedLabel');
 
+export const restrictedSubject = ns('restrictedSubject');
+export const restrictionScope = ns('restrictionScope');
+export const restrictionStatus = ns('restrictionStatus');
+export const restrictionSource = ns('restrictionSource');
+export const restrictionExpiresAt = ns('restrictionExpiresAt');
+
 export const REPORT_TARGET_KINDS = [
-  'post', 'comment', 'person', 'media', 'story', 'team', 'message', 'other',
+  'post',
+  'comment',
+  'person',
+  'media',
+  'story',
+  'team',
+  'message',
+  'other',
 ] as const;
 export const REPORT_REASONS = [
-  'spam', 'harassment', 'hateSpeech', 'violence', 'sexualContent', 'childSafety',
-  'misinformation', 'impersonation', 'personalInformation', 'other',
+  'spam',
+  'harassment',
+  'hateSpeech',
+  'violence',
+  'sexualContent',
+  'childSafety',
+  'misinformation',
+  'impersonation',
+  'personalInformation',
+  'other',
 ] as const;
-export const REPORT_STATUSES = ['open', 'reviewing', 'actioned', 'dismissed'] as const;
-export const REPORT_RESOLUTIONS = ['removed', 'warned', 'restricted', 'banned', 'noAction'] as const;
+export const REPORT_STATUSES = [
+  'open',
+  'reviewing',
+  'actioned',
+  'dismissed',
+] as const;
+export const REPORT_RESOLUTIONS = [
+  'removed',
+  'warned',
+  'restricted',
+  'banned',
+  'noAction',
+] as const;
+export const RESTRICTION_SCOPES = ['messaging', 'account'] as const;
+export const RESTRICTION_STATUSES = ['active', 'lifted'] as const;
+export const RESTRICTION_SOURCES = [
+  'automatedScan',
+  'moderator',
+  'userReport',
+  'system',
+] as const;
 
 export type ReportTargetKind = (typeof REPORT_TARGET_KINDS)[number];
 export type ReportReason = (typeof REPORT_REASONS)[number];
 export type ReportStatus = (typeof REPORT_STATUSES)[number];
 export type ReportResolution = (typeof REPORT_RESOLUTIONS)[number];
+export type RestrictionScope = (typeof RESTRICTION_SCOPES)[number];
+export type RestrictionStatus = (typeof RESTRICTION_STATUSES)[number];
+export type RestrictionSource = (typeof RESTRICTION_SOURCES)[number];
 
 /** Convert known legacy/product aliases while preserving the closed canonical vocabulary. */
 export function canonicalReportReason(value: string): ReportReason {
