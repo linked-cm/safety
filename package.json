@@ -1,6 +1,6 @@
 {
   "name": "@linked.cm/safety",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Portable LINKED safety records and core operations for reporting, blocking, muting, moderation, and visibility filtering.",
   "linkedPackage": true,
   "type": "module",
