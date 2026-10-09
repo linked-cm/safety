@@ -87,5 +87,6 @@
     "reporting",
     "blocking",
     "rdf"
-  ]
+  ],
+  "packageManager": "npm@12.2.0"
 }
