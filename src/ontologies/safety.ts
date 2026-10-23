@@ -1,7 +1,25 @@
 import { createNameSpace } from '@_linked/core/utils/NameSpace';
+import { loadOntologyFiles } from '@_linked/core/ontology/loadOntologyFiles';
 
-export const ns = createNameSpace('https://id.linked.cm/safety/');
+/** The package's ontology data, relative to this module (Turtle, copied into `lib/` by the build). */
+export const dataFiles = ['../data/safety.ttl'];
+
+/** Reads the package's ontology data (server only). */
+export const loadData = () => loadOntologyFiles(import.meta.url, dataFiles);
+
+/**
+ * The safety ontology. First-party ontologies live at `https://linked.cm/ont/{slug}/`, and the
+ * slug is the package's public slug (`safety`), the same one its shapes use under
+ * `https://linked.cm/shape/safety/`.
+ *
+ * Until 1.0 this was `https://id.linked.cm/safety/`. Data stored under that namespace is
+ * invisible to this release until it is rewritten to this one.
+ */
+export const ns = createNameSpace('https://linked.cm/ont/safety/');
 export const _self = ns('');
+
+/** @deprecated the namespace before 1.0; stored data is rewritten to {@link ns}. */
+export const legacyNs = createNameSpace('https://id.linked.cm/safety/');
 
 export const SafetyReport = ns('SafetyReport');
 export const SafetyBlock = ns('SafetyBlock');

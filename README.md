@@ -8,7 +8,7 @@ The package provides:
   resolution, timestamps, and legal hold.
 - `SafetyBlockShape`: an immediate, silent block whose visibility effect is bilateral.
 - `SafetyMuteShape`: a silent, one-way mute with optional automatic expiry.
-- `ContentMuteShape`: a viewer preference over host-defined content labels.
+- `ContentMuteShape`: a viewer preference over host-defined content labels (`mutedLabel`).
 - `SafetyRestrictionShape`: a durable messaging or account restriction with source,
   reason, lifecycle state, and optional expiry.
 - core verbs (`createReport`, `createBlock`, `createRestriction`, `muteSubject`, status updates and reversals),
@@ -74,3 +74,10 @@ successful moderation.
 `listSafetyReports({ statuses, limit })` is the portable moderation-queue read. It returns
 generic IRIs and report metadata only; the host must authorize the caller before invoking it
 and may resolve identities or content references inside its private admin layer.
+
+## Ontology
+
+Terms live at `https://linked.cm/ont/safety/` (prefix `safety`), declared in
+`src/data/safety.ttl` and registered from `src/ontologies/safety.register.ts`. Before 1.0 they were
+at `https://id.linked.cm/safety/` (still exported as the deprecated `legacyNs`); an app with stored
+safety records rewrites that prefix to the new one before upgrading.

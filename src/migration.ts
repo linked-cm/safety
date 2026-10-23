@@ -67,12 +67,12 @@ export async function migrateLegacySafetySnapshot(
     SafetyReportShape.select((row) => [row.reportedBy, row.target, row.createdAt]) as Promise<any[]>,
     SafetyBlockShape.select((row) => [row.blockedBy, row.blocked, row.createdAt]) as Promise<any[]>,
     SafetyMuteShape.select((row) => [row.mutedBy, row.muted, row.createdAt]) as Promise<any[]>,
-    ContentMuteShape.select((row) => [row.mutedBy, row.label]) as Promise<any[]>,
+    ContentMuteShape.select((row) => [row.mutedBy, row.mutedLabel]) as Promise<any[]>,
   ]);
   const reportKeys = new Set(reports.map((row) => key(row.reportedBy, row.target, row.createdAt)));
   const blockKeys = new Set(blocks.map((row) => key(row.blockedBy, row.blocked, row.createdAt)));
   const muteKeys = new Set(mutes.map((row) => key(row.mutedBy, row.muted, row.createdAt)));
-  const contentMuteKeys = new Set(contentMutes.map((row) => key(row.mutedBy, row.label)));
+  const contentMuteKeys = new Set(contentMutes.map((row) => key(row.mutedBy, row.mutedLabel)));
 
   for (const row of snapshot.reports ?? []) {
     const reporterId = idOf(row.reportedBy);
@@ -140,7 +140,7 @@ export async function migrateLegacySafetySnapshot(
     const dedupe = key(viewerId, row.label);
     if (contentMuteKeys.has(dedupe)) { counts.skipped += 1; continue; }
     if (write) await ContentMuteShape.create({
-      mutedBy: { id: viewerId }, label: row.label,
+      mutedBy: { id: viewerId }, mutedLabel: row.label,
       createdAt: migrationCreatedAt(row.createdAt), active: row.active !== false,
     } as any);
     contentMuteKeys.add(dedupe);
