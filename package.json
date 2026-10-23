@@ -4,7 +4,7 @@
   "description": "Portable LINKED safety records and core operations for reporting, blocking, muting, moderation, and visibility filtering.",
   "linkedPackage": true,
   "type": "module",
-  "main": "lib/cjs/index.js",
+  "main": "lib/esm/index.js",
   "module": "lib/esm/index.js",
   "types": "lib/esm/index.d.ts",
   "license": "MIT",
@@ -22,8 +22,10 @@
     "./src/index.ts",
     "./src/shapes/index.ts",
     "./src/shapes/*.ts",
+    "./src/ontologies/*.register.ts",
     "lib/esm/shapes/index.js",
-    "lib/esm/shapes/*.js"
+    "lib/esm/shapes/*.js",
+    "lib/esm/ontologies/*.register.js"
   ],
   "publishConfig": {
     "access": "public"
@@ -37,28 +39,23 @@
   "exports": {
     ".": {
       "types": "./lib/esm/index.d.ts",
-      "import": "./lib/esm/index.js",
-      "require": "./lib/cjs/index.js"
+      "import": "./lib/esm/index.js"
     },
     "./core": {
       "types": "./lib/esm/core.d.ts",
-      "import": "./lib/esm/core.js",
-      "require": "./lib/cjs/core.js"
+      "import": "./lib/esm/core.js"
     },
     "./shapes": {
       "types": "./lib/esm/shapes.d.ts",
-      "import": "./lib/esm/shapes.js",
-      "require": "./lib/cjs/shapes.js"
+      "import": "./lib/esm/shapes.js"
     },
     "./*.js": {
       "types": "./lib/esm/*.d.ts",
-      "import": "./lib/esm/*.js",
-      "require": "./lib/cjs/*.js"
+      "import": "./lib/esm/*.js"
     },
     "./*": {
       "types": "./lib/esm/*.d.ts",
-      "import": "./lib/esm/*.js",
-      "require": "./lib/cjs/*.js"
+      "import": "./lib/esm/*.js"
     }
   },
   "typesVersions": {
@@ -69,11 +66,11 @@
     }
   },
   "dependencies": {
-    "@_linked/core": "^2.25.0",
-    "@_linked/xsd": "^1.0.0"
+    "@_linked/core": "^2.37.2",
+    "@_linked/xsd": "^1.3.1"
   },
   "devDependencies": {
-    "@_linked/cli": "1.51.1",
+    "@_linked/cli": "^1.54.0",
     "@changesets/changelog-github": "^1.0.0",
     "@changesets/cli": "^3.0.0",
     "@types/node": "^20.12.7",

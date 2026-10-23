@@ -12,7 +12,7 @@ export class ContentMuteShape extends Shape {
   get mutedBy(): Shape { return undefined as any; }
 
   @literalProperty({ path: safety.mutedLabel, datatype: xsd.string, required: true, maxCount: 1 })
-  get label(): string { return ''; }
+  get mutedLabel(): string { return ''; }
 
   @literalProperty({ path: safety.createdAt, datatype: xsd.dateTime, required: true, maxCount: 1 })
   get createdAt(): string { return ''; }

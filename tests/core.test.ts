@@ -54,8 +54,8 @@ describe('portable safety visibility', () => {
       },
     ],
     contentMutes: [
-      { mutedBy: { id: 'a' }, label: 'distressing', active: true },
-      { mutedBy: { id: 'a' }, label: 'old', active: false },
+      { mutedBy: { id: 'a' }, mutedLabel: 'distressing', active: true },
+      { mutedBy: { id: 'a' }, mutedLabel: 'old', active: false },
     ],
   };
 

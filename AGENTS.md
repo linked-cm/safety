@@ -7,7 +7,7 @@ Extracted from Serve's safety layer (`serve-earth/serve-community`) on 2026-10-0
 ## Do not change without a migration
 
 - `linkedPackage('@linked.cm/safety', { baseUri: 'https://linked.cm/' })` in `src/package.ts` — it decides the package and shape IRIs (`https://linked.cm/pkg/safety`, `https://linked.cm/shape/safety/…`).
-- The ontology namespace `https://id.linked.cm/safety/`. Stored reports, blocks and mutes are keyed to it.
+- The ontology namespace `https://linked.cm/ont/safety/` (`src/ontologies/safety.ts`, data in `src/data/safety.ttl`). Stored reports, blocks and mutes are keyed to it. Until 1.0 it was `https://id.linked.cm/safety/` (`legacyNs`); apps rewrite stored data from that prefix.
 
 ## Package boundary
 

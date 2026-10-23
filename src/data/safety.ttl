@@ -1,0 +1,108 @@
+@prefix safety: <https://linked.cm/ont/safety/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+safety:
+    a owl:Ontology ;
+    dcterms:description "Portable LINKED safety records and core operations for reporting, blocking, muting, moderation, and visibility filtering."@en ;
+    dcterms:title "Linked safety"@en .
+
+safety:ContentMute
+    a owl:Class ;
+    rdfs:comment "A viewer preference to hide content carrying a host-defined label."@en .
+
+safety:SafetyBlock
+    a owl:Class ;
+    rdfs:comment "A silent, bilateral-visibility block between two subjects."@en .
+
+safety:SafetyMute
+    a owl:Class ;
+    rdfs:comment "A silent, one-way, optionally expiring subject mute."@en .
+
+safety:SafetyReport
+    a owl:Class ;
+    rdfs:comment "A durable user report and its moderation lifecycle."@en .
+
+safety:SafetyRestriction
+    a owl:Class ;
+    rdfs:comment "A durable, host-enforced restriction on a subject."@en .
+
+safety:avoidFutureInteraction
+    a owl:DatatypeProperty ;
+    rdfs:comment "Private host matching/scheduling constraint; never disclosed to the blocked subject."@en .
+
+safety:blockActive
+    a owl:DatatypeProperty .
+
+safety:blockedBy
+    a owl:ObjectProperty .
+
+safety:blockedSubject
+    a owl:ObjectProperty .
+
+safety:createdAt
+    a owl:DatatypeProperty .
+
+safety:inPersonIncident
+    a owl:DatatypeProperty .
+
+safety:legalHold
+    a owl:DatatypeProperty .
+
+safety:muteActive
+    a owl:DatatypeProperty .
+
+safety:muteUntil
+    a owl:DatatypeProperty .
+
+safety:mutedBy
+    a owl:ObjectProperty .
+
+safety:mutedLabel
+    a owl:DatatypeProperty .
+
+safety:mutedSubject
+    a owl:ObjectProperty .
+
+safety:reasonCode
+    a owl:DatatypeProperty .
+
+safety:reportDetail
+    a owl:DatatypeProperty .
+
+safety:reportStatus
+    a owl:DatatypeProperty .
+
+safety:reportTarget
+    a owl:ObjectProperty .
+
+safety:reportedBy
+    a owl:ObjectProperty .
+
+safety:resolution
+    a owl:DatatypeProperty .
+
+safety:resolvedAt
+    a owl:DatatypeProperty .
+
+safety:resolvedBy
+    a owl:ObjectProperty .
+
+safety:restrictedSubject
+    a owl:ObjectProperty .
+
+safety:restrictionExpiresAt
+    a owl:DatatypeProperty .
+
+safety:restrictionScope
+    a owl:DatatypeProperty .
+
+safety:restrictionSource
+    a owl:DatatypeProperty .
+
+safety:restrictionStatus
+    a owl:DatatypeProperty .
+
+safety:targetKind
+    a owl:DatatypeProperty .

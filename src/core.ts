@@ -54,7 +54,7 @@ export interface SafetyRows {
     reportStatus?: string;
     resolution?: string;
   }>;
-  contentMutes: Array<{ mutedBy?: unknown; label?: string; active?: boolean }>;
+  contentMutes: Array<{ mutedBy?: unknown; mutedLabel?: string; active?: boolean }>;
 }
 
 /** Pure resolver choke-point. Every host surface should use this same result. */
@@ -85,7 +85,7 @@ export function computeSafetySets(
     }
     for (const mute of rows.contentMutes) {
       if (mute.active === false || idOf(mute.mutedBy) !== viewerId) continue;
-      if (mute.label) mutedLabels.add(String(mute.label));
+      if (mute.mutedLabel) mutedLabels.add(String(mute.mutedLabel));
     }
   }
 
@@ -133,7 +133,7 @@ export async function selectSafetySets(
     ]) as Promise<SafetyRows['reports']>,
     ContentMuteShape.select((mute) => [
       mute.mutedBy,
-      mute.label,
+      mute.mutedLabel,
       mute.active,
     ]) as Promise<SafetyRows['contentMutes']>,
   ]);
@@ -350,19 +350,19 @@ export async function muteContentLabel(
   if (!viewerId || !label.trim()) throw new Error('invalid_content_mute');
   const existing = (await ContentMuteShape.select((mute) => [
     mute.mutedBy,
-    mute.label,
+    mute.mutedLabel,
     mute.active,
   ])) as any[];
   const active = existing.find(
     (mute) =>
       mute.active !== false &&
       idOf(mute.mutedBy) === viewerId &&
-      mute.label === label
+      mute.mutedLabel === label
   );
   if (active) return idOf(active);
   const mute = await ContentMuteShape.create({
     mutedBy: { id: viewerId },
-    label,
+    mutedLabel: label,
     createdAt: new Date().toISOString(),
     active: true,
   } as any);
@@ -634,7 +634,7 @@ export async function listViewerSafety(
     ]) as Promise<any[]>,
     ContentMuteShape.select((item) => [
       item.mutedBy,
-      item.label,
+      item.mutedLabel,
       item.active,
       item.createdAt,
     ]) as Promise<any[]>,
@@ -682,7 +682,7 @@ export async function listViewerSafety(
       )
       .map((item) => ({
         id: idOf(item),
-        label: item.label,
+        label: item.mutedLabel,
         createdAt: item.createdAt,
       })),
   };

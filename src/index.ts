@@ -1,5 +1,5 @@
 import './package.js';
-import './ontologies/safety.js';
+import './ontologies/safety.register.js';
 import './shapes/index.js';
 
 export * from './package.js';
