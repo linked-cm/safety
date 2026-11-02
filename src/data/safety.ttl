@@ -1,0 +1,133 @@
+@prefix safety: <https://linked.cm/ont/safety/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+safety:
+    a owl:Ontology ;
+    dcterms:description "Portable LINKED safety records and core operations for reporting, blocking, muting, moderation, and visibility filtering."@en ;
+    dcterms:title "Linked safety"@en .
+
+safety:ContentMute
+    a owl:Class ;
+    rdfs:comment "A viewer preference to hide content carrying a host-defined label."@en .
+
+safety:SafetyBlock
+    a owl:Class ;
+    rdfs:comment "A silent, bilateral-visibility block between two subjects."@en .
+
+safety:SafetyMute
+    a owl:Class ;
+    rdfs:comment "A silent, one-way, optionally expiring subject mute."@en .
+
+safety:SafetyReport
+    a owl:Class ;
+    rdfs:comment "A durable user report and its moderation lifecycle."@en .
+
+safety:SafetyRestriction
+    a owl:Class ;
+    rdfs:comment "A durable, host-enforced restriction on a subject."@en .
+
+safety:avoidFutureInteraction
+    a owl:DatatypeProperty ;
+    rdfs:comment "Private host matching/scheduling constraint; never disclosed to the blocked subject."@en .
+
+safety:blockActive
+    a owl:DatatypeProperty ;
+    rdfs:comment "Whether a block is in force."@en .
+
+safety:blockedBy
+    a owl:ObjectProperty ;
+    rdfs:comment "The subject who created a block."@en .
+
+safety:blockedSubject
+    a owl:ObjectProperty ;
+    rdfs:comment "The subject a block is against."@en .
+
+safety:createdAt
+    a owl:DatatypeProperty ;
+    rdfs:comment "When a safety record was created."@en .
+
+safety:inPersonIncident
+    a owl:DatatypeProperty ;
+    rdfs:comment "Whether a report concerns an incident that happened in person."@en .
+
+safety:legalHold
+    a owl:DatatypeProperty ;
+    rdfs:comment "Whether a report is held for legal reasons and must not be deleted."@en .
+
+safety:muteActive
+    a owl:DatatypeProperty ;
+    rdfs:comment "Whether a mute is in force."@en .
+
+safety:muteUntil
+    a owl:DatatypeProperty ;
+    rdfs:comment "When a mute expires."@en .
+
+safety:mutedBy
+    a owl:ObjectProperty ;
+    rdfs:comment "The viewer who created a mute."@en .
+
+safety:mutedLabel
+    a owl:DatatypeProperty ;
+    rdfs:comment "The host-defined content label a content mute hides."@en .
+
+safety:mutedSubject
+    a owl:ObjectProperty ;
+    rdfs:comment "The subject a mute hides."@en .
+
+safety:reasonCode
+    a owl:DatatypeProperty ;
+    rdfs:comment "Why a report was made: spam, harassment, hateSpeech, violence, sexualContent, childSafety, misinformation, impersonation, personalInformation or other."@en .
+
+safety:reportDetail
+    a owl:DatatypeProperty ;
+    rdfs:comment "Free-text detail the reporter gave."@en .
+
+safety:reportStatus
+    a owl:DatatypeProperty ;
+    rdfs:comment "Where a report is in moderation: open, reviewing, actioned or dismissed."@en .
+
+safety:reportTarget
+    a owl:ObjectProperty ;
+    rdfs:comment "What a report is about."@en .
+
+safety:reportedBy
+    a owl:ObjectProperty ;
+    rdfs:comment "The subject who made a report."@en .
+
+safety:resolution
+    a owl:DatatypeProperty ;
+    rdfs:comment "How a report was resolved: removed, warned, restricted, banned or noAction."@en .
+
+safety:resolvedAt
+    a owl:DatatypeProperty ;
+    rdfs:comment "When a report was resolved."@en .
+
+safety:resolvedBy
+    a owl:ObjectProperty ;
+    rdfs:comment "The moderator who resolved a report."@en .
+
+safety:restrictedSubject
+    a owl:ObjectProperty ;
+    rdfs:comment "The subject a restriction applies to."@en .
+
+safety:restrictionExpiresAt
+    a owl:DatatypeProperty ;
+    rdfs:comment "When a restriction expires."@en .
+
+safety:restrictionScope
+    a owl:DatatypeProperty ;
+    rdfs:comment "What a restriction covers: messaging or account."@en .
+
+safety:restrictionSource
+    a owl:DatatypeProperty ;
+    rdfs:comment "What imposed a restriction: automatedScan, moderator, userReport or system."@en .
+
+safety:restrictionStatus
+    a owl:DatatypeProperty ;
+    rdfs:comment "Whether a restriction is active or lifted."@en .
+
+safety:targetKind
+    a owl:DatatypeProperty ;
+    rdfs:comment "The kind of thing a report targets: post, comment, person, media, story, team, message or other."@en .

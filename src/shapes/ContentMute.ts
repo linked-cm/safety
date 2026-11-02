@@ -1,6 +1,6 @@
 import { Shape } from '@_linked/core/shapes/Shape';
 import { literalProperty, objectProperty } from '@_linked/core/shapes/SHACL';
-import { xsd } from '@_linked/xsd/ontologies/xsd';
+import * as xsd from '@_linked/xsd/ontologies/xsd';
 import * as safety from '../ontologies/safety.js';
 import { linkedShape } from '../package.js';
 
@@ -12,7 +12,7 @@ export class ContentMuteShape extends Shape {
   get mutedBy(): Shape { return undefined as any; }
 
   @literalProperty({ path: safety.mutedLabel, datatype: xsd.string, required: true, maxCount: 1 })
-  get label(): string { return ''; }
+  get mutedLabel(): string { return ''; }
 
   @literalProperty({ path: safety.createdAt, datatype: xsd.dateTime, required: true, maxCount: 1 })
   get createdAt(): string { return ''; }

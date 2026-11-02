@@ -51,7 +51,7 @@ describe('copy-only legacy migration', () => {
     await migrateLegacySafetySnapshot(legacy);
     expect(tables.get(SafetyBlockShape)![0]).toMatchObject({ blocked: { id: 'c' }, active: true, avoidFutureInteraction: true });
     expect(tables.get(SafetyMuteShape)![0]).toMatchObject({ muted: { id: 'd' }, until: '2027-01-01T00:00:00.000Z' });
-    expect(tables.get(ContentMuteShape)![0]).toMatchObject({ label: 'distressing', active: true });
+    expect(tables.get(ContentMuteShape)![0]).toMatchObject({ mutedLabel: 'distressing', active: true });
   });
 
   it('is idempotent: a second run copies nothing, including an undated row', async () => {

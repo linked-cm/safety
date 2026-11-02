@@ -5,7 +5,7 @@ import {
   normalizeSafetyReports,
   updateReportStatus,
 } from '../src/core.js';
-import { canonicalReportReason } from '../src/ontologies/safety.js';
+import { canonicalReportReason } from '../src/values.js';
 import { SafetyReportShape } from '../src/shapes/SafetyReport.js';
 
 describe('portable safety visibility', () => {
@@ -54,8 +54,8 @@ describe('portable safety visibility', () => {
       },
     ],
     contentMutes: [
-      { mutedBy: { id: 'a' }, label: 'distressing', active: true },
-      { mutedBy: { id: 'a' }, label: 'old', active: false },
+      { mutedBy: { id: 'a' }, mutedLabel: 'distressing', active: true },
+      { mutedBy: { id: 'a' }, mutedLabel: 'old', active: false },
     ],
   };
 

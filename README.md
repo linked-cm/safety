@@ -8,7 +8,7 @@ The package provides:
   resolution, timestamps, and legal hold.
 - `SafetyBlockShape`: an immediate, silent block whose visibility effect is bilateral.
 - `SafetyMuteShape`: a silent, one-way mute with optional automatic expiry.
-- `ContentMuteShape`: a viewer preference over host-defined content labels.
+- `ContentMuteShape`: a viewer preference over host-defined content labels (`mutedLabel`).
 - `SafetyRestrictionShape`: a durable messaging or account restriction with source,
   reason, lifecycle state, and optional expiry.
 - core verbs (`createReport`, `createBlock`, `createRestriction`, `muteSubject`, status updates and reversals),
@@ -74,3 +74,20 @@ successful moderation.
 `listSafetyReports({ statuses, limit })` is the portable moderation-queue read. It returns
 generic IRIs and report metadata only; the host must authorize the caller before invoking it
 and may resolve identities or content references inside its private admin layer.
+
+## Ontology
+
+Terms live at `https://linked.cm/ont/safety/` (prefix `safety`), declared in
+`src/data/safety.ttl`, the only source of terms. `linked generate-ontology` writes the accessor
+modules from it (`package.json` `"linkedOntologies"`), and `linked build` fails when they are
+stale. Import the terms as a namespace:
+
+```ts
+import * as safety from '@linked.cm/safety/ontologies/safety';
+import { ns, loadData } from '@linked.cm/safety/ontologies/safety.data';
+
+safety.reportStatus; // {id: 'https://linked.cm/ont/safety/reportStatus'}
+```
+
+The closed value sets (`REPORT_REASONS`, `REPORT_STATUSES`, …), their types and
+`canonicalReportReason` are in `@linked.cm/safety/values` and the package root.

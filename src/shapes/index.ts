@@ -1,3 +1,4 @@
+import '../ontologies/safety.register.js';
 import './SafetyReport.js';
 import './SafetyBlock.js';
 import './SafetyMute.js';
