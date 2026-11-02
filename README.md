@@ -78,6 +78,16 @@ and may resolve identities or content references inside its private admin layer.
 ## Ontology
 
 Terms live at `https://linked.cm/ont/safety/` (prefix `safety`), declared in
-`src/data/safety.ttl` and registered from `src/ontologies/safety.register.ts`. Before 1.0 they were
-at `https://id.linked.cm/safety/` (still exported as the deprecated `legacyNs`); an app with stored
-safety records rewrites that prefix to the new one before upgrading.
+`src/data/safety.ttl`, the only source of terms. `linked generate-ontology` writes the accessor
+modules from it (`package.json` `"linkedOntologies"`), and `linked build` fails when they are
+stale. Import the terms as a namespace:
+
+```ts
+import * as safety from '@linked.cm/safety/ontologies/safety';
+import { ns, loadData } from '@linked.cm/safety/ontologies/safety.data';
+
+safety.reportStatus; // {id: 'https://linked.cm/ont/safety/reportStatus'}
+```
+
+The closed value sets (`REPORT_REASONS`, `REPORT_STATUSES`, …), their types and
+`canonicalReportReason` are in `@linked.cm/safety/values` and the package root.

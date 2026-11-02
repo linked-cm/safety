@@ -16,7 +16,7 @@ import {
   type ReportTargetKind,
   type RestrictionScope,
   type RestrictionSource,
-} from './ontologies/safety.js';
+} from './values.js';
 
 export const idOf = (value: unknown): string => {
   if (!value) return '';

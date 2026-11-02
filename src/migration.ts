@@ -1,4 +1,4 @@
-import { canonicalReportReason, type ReportResolution, type ReportStatus, type ReportTargetKind } from './ontologies/safety.js';
+import { canonicalReportReason, type ReportResolution, type ReportStatus, type ReportTargetKind } from './values.js';
 import { ContentMuteShape, SafetyBlockShape, SafetyMuteShape, SafetyReportShape } from './shapes.js';
 import { idOf } from './core.js';
 

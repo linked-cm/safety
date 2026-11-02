@@ -9,6 +9,7 @@ import { definedTermsFromTurtle } from '@_linked/core/ontology/hierarchy';
 import { checkShapeHierarchy } from '@_linked/core/shapes/checkShapeHierarchy';
 import { getAllNodeShapes, getTargetClassId } from '@_linked/core/utils/ShapeClass';
 import * as safety from '../src/ontologies/safety.js';
+import { _ontologyResource, loadData } from '../src/ontologies/safety.data.js';
 import '../src/ontologies/safety.register.js';
 import '../src/shapes/index.js';
 import { packageName } from '../src/package.js';
@@ -20,11 +21,15 @@ const termIris = Object.values(safety)
   .filter((iri) => iri.startsWith(NAMESPACE));
 
 describe('safety ontology', () => {
-  it('mints terms under https://linked.cm/ont/safety/ and keeps the old namespace as an alias', () => {
-    expect(safety._self.id).toBe(NAMESPACE);
+  it('mints terms under https://linked.cm/ont/safety/', () => {
+    expect(_ontologyResource.id).toBe(NAMESPACE);
     expect(safety.ContentMute.id).toBe(`${NAMESPACE}ContentMute`);
     expect(safety.mutedLabel.id).toBe(`${NAMESPACE}mutedLabel`);
-    expect(safety.legacyNs('ContentMute').id).toBe('https://id.linked.cm/safety/ContentMute');
+  });
+
+  it('exports only terms from the terms module', () => {
+    expect(Object.keys(safety).length).toBe(31);
+    expect(termIris.length).toBe(31);
   });
 
   it('registers the package slug as the prefix', () => {
@@ -32,7 +37,7 @@ describe('safety ontology', () => {
   });
 
   it('defines every exported term and every class a shape targets in its Turtle data', async () => {
-    const defined = await definedTermsFromTurtle(await safety.loadData());
+    const defined = await definedTermsFromTurtle(await loadData());
     const targets = [...getAllNodeShapes().values()]
       .map((shape) => getTargetClassId(shape))
       .filter((iri): iri is string => !!iri && iri.startsWith(NAMESPACE));

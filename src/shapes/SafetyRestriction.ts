@@ -1,7 +1,8 @@
 import { Shape } from '@_linked/core/shapes/Shape';
 import { literalProperty, objectProperty } from '@_linked/core/shapes/SHACL';
-import { xsd } from '@_linked/xsd/ontologies/xsd';
+import * as xsd from '@_linked/xsd/ontologies/xsd';
 import * as safety from '../ontologies/safety.js';
+import { REPORT_REASONS, RESTRICTION_SCOPES, RESTRICTION_SOURCES, RESTRICTION_STATUSES } from '../values.js';
 import { linkedShape } from '../package.js';
 
 @linkedShape({
@@ -24,7 +25,7 @@ export class SafetyRestrictionShape extends Shape {
     datatype: xsd.string,
     required: true,
     maxCount: 1,
-    in: [...safety.RESTRICTION_SCOPES],
+    in: [...RESTRICTION_SCOPES],
   })
   get scope(): string {
     return '';
@@ -35,7 +36,7 @@ export class SafetyRestrictionShape extends Shape {
     datatype: xsd.string,
     required: true,
     maxCount: 1,
-    in: [...safety.RESTRICTION_STATUSES],
+    in: [...RESTRICTION_STATUSES],
     defaultValue: 'active',
   })
   get status(): string {
@@ -47,7 +48,7 @@ export class SafetyRestrictionShape extends Shape {
     datatype: xsd.string,
     required: true,
     maxCount: 1,
-    in: [...safety.REPORT_REASONS],
+    in: [...REPORT_REASONS],
   })
   get reasonCode(): string {
     return '';
@@ -58,7 +59,7 @@ export class SafetyRestrictionShape extends Shape {
     datatype: xsd.string,
     required: true,
     maxCount: 1,
-    in: [...safety.RESTRICTION_SOURCES],
+    in: [...RESTRICTION_SOURCES],
   })
   get restrictionSource(): string {
     return '';

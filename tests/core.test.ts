@@ -5,7 +5,7 @@ import {
   normalizeSafetyReports,
   updateReportStatus,
 } from '../src/core.js';
-import { canonicalReportReason } from '../src/ontologies/safety.js';
+import { canonicalReportReason } from '../src/values.js';
 import { SafetyReportShape } from '../src/shapes/SafetyReport.js';
 
 describe('portable safety visibility', () => {
