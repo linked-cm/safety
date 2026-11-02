@@ -73,7 +73,7 @@
     "@_linked/xsd": "^1.0.0"
   },
   "devDependencies": {
-    "@_linked/cli": "1.51.1",
+    "@_linked/cli": "1.61.0",
     "@changesets/changelog-github": "^1.0.0",
     "@changesets/cli": "^3.0.0",
     "@types/node": "^20.12.7",
