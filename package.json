@@ -76,7 +76,7 @@
     "@_linked/cli": "1.51.1",
     "@changesets/changelog-github": "^1.0.0",
     "@changesets/cli": "^3.0.0",
-    "@types/node": "^20.12.7",
+    "@types/node": "^26.0.0",
     "typescript": "^5.9.2",
     "vitest": "^2.1.9"
   },
